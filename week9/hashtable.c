@@ -1,164 +1,295 @@
 #include <stdio.h>
+
 #include <string.h>
+
 #include <ctype.h>
 
+
+
 #define MAX_SIZE 7
-#define EMPTY 0
-#define OCCUPIED 1
-#define DELETED 2
+
+#define EMPTY "EMPTY"
+
+#define DELETED "DELETED"
+
+
+
+typedef enum {EMPTY_SLOT, OCCUPIED, DELETED_SLOT} Status;
+
+
 
 typedef struct {
+
     char key[100];
-    int state;
-} HashEntry;
 
-HashEntry hashTable[MAX_SIZE];
+    Status status;
 
-int calculateHash(const char *str) {
+} HashTableEntry;
+
+
+
+HashTableEntry table[MAX_SIZE];
+
+
+
+int isSymbol(char ch) {
+
+    return !isalnum(ch);
+
+}
+
+
+
+int computeHash(const char *str) {
+
     int sumAlpha = 0, sumDigits = 0, sumSymbols = 0;
-    for (int i = 0; str[i] != '\0'; i++) {
-        if (isalpha(str[i])) {
+
+    for (int i = 0; str[i]; ++i) {
+
+        if (isalpha(str[i]))
+
             sumAlpha += str[i];
-        } else if (isdigit(str[i])) {
+
+        else if (isdigit(str[i]))
+
             sumDigits += str[i];
-        } else {
+
+        else if (isSymbol(str[i]))
+
             sumSymbols += str[i];
-        }
+
     }
+
     return (sumAlpha + 3 * sumDigits + 5 * sumSymbols + 7) % MAX_SIZE;
+
 }
 
-void initializeHashTable() {
-    for (int i = 0; i < MAX_SIZE; i++) {
-        hashTable[i].state = EMPTY;
-    }
-}
 
-void addLinear(const char *key) {
-    int hash = calculateHash(key);
-    int index = hash;
-    while (hashTable[index].state == OCCUPIED) {
-        if (strcmp(hashTable[index].key, key) == 0) {
-            printf("Key %s already exists at index %d\n", key, index);
-            return;
-        }
-        index = (index + 1) % MAX_SIZE;
-        if (index == hash) {
-            printf("Hash table is full!\n");
-            return;
-        }
-    }
-    strcpy(hashTable[index].key, key);
-    hashTable[index].state = OCCUPIED;
-    printf("Key %s added at index %d\n", key, index);
-}
 
-void addQuadratic(const char *key) {
-    int hash = calculateHash(key);
-    int index = hash, i = 1;
-    while (hashTable[index].state == OCCUPIED) {
-        if (strcmp(hashTable[index].key, key) == 0) {
-            printf("Key %s already exists at index %d\n", key, index);
-            return;
-        }
-        printf("Collision detected @index %d for key:%s,Occupied by: %s\n", index, key, hashTable[index].key);
-        index = (hash + i * i) % MAX_SIZE;
-        i++;
-        if (i == MAX_SIZE) {
-            printf("Hash table is full!\n");
-            return;
-        }
-    }
-    strcpy(hashTable[index].key, key);
-    hashTable[index].state = OCCUPIED;
-    printf("Key %s added at index %d\n", key, index);
-}
+void displayTable() {
 
-void search(const char *key) {
-    int hash = calculateHash(key);
-    int index = hash, i = 1;
-    while (hashTable[index].state != EMPTY) {
-        if (hashTable[index].state == OCCUPIED && strcmp(hashTable[index].key, key) == 0) {
-            printf("Key found!!\n");
-            return;
-        }
-        index = (hash + i * i) % MAX_SIZE; 
-        i++;
-        if (i == MAX_SIZE) break;
-    }
-    printf("Key not Found!!\n");
-}
-
-void deleteKey(const char *key) {
-    int hash = calculateHash(key);
-    int index = hash, i = 1;
-    while (hashTable[index].state != EMPTY) {
-        if (hashTable[index].state == OCCUPIED && strcmp(hashTable[index].key, key) == 0) {
-            hashTable[index].state = DELETED;
-            printf("Deleted %s\n", key);
-            return;
-        }
-        index = (hash + i * i) % MAX_SIZE; 
-        i++;
-        if (i == MAX_SIZE) break;
-    }
-    printf("Key not Found!!\n");
-}
-
-void displayHashTable() {
     printf("\n--- Full Hash Table ---\n");
-    for (int i = 0; i < MAX_SIZE; i++) {
-        printf("%d: ", i);
-        if (hashTable[i].state == EMPTY) {
-            printf("EMPTY\n");
-        } else if (hashTable[i].state == DELETED) {
-            printf("DELETED\n");
-        } else {
-            printf("%s\n", hashTable[i].key);
-        }
+
+    for (int i = 0; i < MAX_SIZE; ++i) {
+
+        if (table[i].status == EMPTY_SLOT)
+
+            printf("%d: %s\n", i, EMPTY);
+
+        else if (table[i].status == DELETED_SLOT)
+
+            printf("%d: %s\n", i, DELETED);
+
+        else
+
+            printf("%d: %s\n", i, table[i].key);
+
     }
+
 }
 
-void main() {
-    int choice, probingType;
+
+
+int insertLinear(const char *key) {
+
+    int hash = computeHash(key);
+
+    for (int i = 0; i < MAX_SIZE; ++i) {
+
+        int idx = (hash + i) % MAX_SIZE;
+
+        if (table[idx].status == EMPTY_SLOT || table[idx].status == DELETED_SLOT) {
+
+            strcpy(table[idx].key, key);
+
+            table[idx].status = OCCUPIED;
+
+            printf("Key %s added at index %d\n", key, idx);
+
+            return 1;
+
+        }
+
+    }
+
+    printf("Hash table full! Cannot insert %s\n", key);
+
+    return 0;
+
+}
+
+
+
+int insertQuadratic(const char *key) {
+
+    int hash = computeHash(key);
+
+    for (int i = 0; i < MAX_SIZE; ++i) {
+
+        int idx = (hash + i*i) % MAX_SIZE;
+
+        if (table[idx].status == EMPTY_SLOT || table[idx].status == DELETED_SLOT) {
+
+            strcpy(table[idx].key, key);
+
+            table[idx].status = OCCUPIED;
+
+            printf("Key %s added at index %d\n", key, idx);
+
+            return 1;
+
+        } else {
+
+            printf("Collision detected @index %d for key:%s, Occupied by: %s\n", idx, key, table[idx].key);
+
+        }
+
+    }
+
+    printf("Hash table full! Cannot insert %s\n", key);
+
+    return 0;
+
+}
+
+
+
+int search(const char *key, int useQuadratic) {
+
+    int hash = computeHash(key);
+
+    for (int i = 0; i < MAX_SIZE; ++i) {
+
+        int idx = useQuadratic ? (hash + i*i) % MAX_SIZE : (hash + i) % MAX_SIZE;
+
+        if (table[idx].status == EMPTY_SLOT)
+
+            break;
+
+        if (table[idx].status == OCCUPIED && strcmp(table[idx].key, key) == 0) {
+
+            printf("Key found!!\n");
+
+            return idx;
+
+        }
+
+    }
+
+    printf("Key not Found!!\n");
+
+    return -1;
+
+}
+
+
+
+void deleteKey(const char *key, int useQuadratic) {
+
+    int idx = search(key, useQuadratic);
+
+    if (idx != -1) {
+
+        table[idx].status = DELETED_SLOT;
+
+        printf("Deleted %s\n", key);
+
+    }
+
+}
+
+
+
+void initTable() {
+
+    for (int i = 0; i < MAX_SIZE; ++i)
+
+        table[i].status = EMPTY_SLOT;
+
+}
+
+
+
+int main() {
+
+    int choice, strategy;
+
     char key[100];
 
-    initializeHashTable();
+    initTable();
 
-    printf("Choose probing strategy: \n1. Linear Probing \n2. Quadratic Probing: \n");
-    scanf("%d", &probingType);
 
-    do {
-        printf("\nEnter your choice: \n1. Add \n2. Search \n3. Delete \n4. Display \n5. Exit:\n:");
+
+    printf("Choose probing strategy: 1. Linear  2. Quadratic :: ");
+
+    scanf("%d", &strategy);
+
+
+
+    while (1) {
+
+        printf("\nEnter your choice: 1.Add 2.Search 3.Delete 4.Display 5.Exit::");
+
         scanf("%d", &choice);
+
+        getchar(); // to consume newline
+
+
+
         switch (choice) {
+
             case 1:
-                printf("Enter the string to add:");
-                scanf("%s", key);
-                if (probingType == 1) {
-                    addLinear(key);
-                } else {
-                    addQuadratic(key);
-                }
+
+                printf("Enter the string to add: ");
+
+                fgets(key, sizeof(key), stdin);
+
+                key[strcspn(key, "\n")] = '\0';  // remove newline
+
+                strategy == 1 ? insertLinear(key) : insertQuadratic(key);
+
                 break;
+
             case 2:
-                printf("Enter the string to search:");
-                scanf("%s", key);
-                search(key);
+
+                printf("Enter the string to search: ");
+
+                fgets(key, sizeof(key), stdin);
+
+                key[strcspn(key, "\n")] = '\0';
+
+                search(key, strategy == 2);
+
                 break;
+
             case 3:
-                printf("Enter the string to delete:");
-                scanf("%s", key);
-                deleteKey(key);
+
+                printf("Enter the string to delete: ");
+
+                fgets(key, sizeof(key), stdin);
+
+                key[strcspn(key, "\n")] = '\0';
+
+                deleteKey(key, strategy == 2);
+
                 break;
+
             case 4:
-                displayHashTable();
+
+                displayTable();
+
                 break;
+
             case 5:
-                printf("Exiting...\n");
-                break;
+
+                return 0;
+
             default:
+
                 printf("Invalid choice!\n");
+
         }
-    } while (choice != 5);
+
+    }
+
 }
